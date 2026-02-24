@@ -1,0 +1,8 @@
+.env
+state.json
+products.json
+__pycache__/
+*.pyc
+.venv/
+.vscode/
+.DS_Store

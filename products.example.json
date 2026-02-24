@@ -1,0 +1,12 @@
+{
+  "products": [
+    {
+      "name": "Sample Product",
+      "url": "https://your-shop.example/products/123",
+      "selector": "[data-testid='price'], .price, #price",
+      "wait_selector": "[data-testid='price'], .price, #price",
+      "attribute": null,
+      "target_price": 9800
+    }
+  ]
+}

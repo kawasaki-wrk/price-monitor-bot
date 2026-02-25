@@ -7,6 +7,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+import main as bot_main
+
 
 BASE_DIR = Path(__file__).resolve().parent
 STATE_FILE = BASE_DIR / "state.json"
@@ -40,13 +42,18 @@ def load_state_table() -> pd.DataFrame:
 
     table_data: list[dict[str, str]] = []
     for name, info in state_data.items():
-        dt = datetime.fromtimestamp(info["updated_at"]).strftime("%Y/%m/%d %H:%M")
+        try:
+            dt = datetime.fromtimestamp(info["updated_at"]).strftime("%Y/%m/%d %H:%M")
+            price_str = f"¥{info['last_price']:,.0f}"
+            url_str = info["url"]
+        except (KeyError, TypeError, ValueError):
+            continue
         table_data.append(
             {
                 "商品名": name,
-                "現在価格": f"¥{info['last_price']:,.0f}",
+                "現在価格": price_str,
                 "最終更新": dt,
-                "商品URL": info["url"],
+                "商品URL": url_str,
             }
         )
 
@@ -54,8 +61,6 @@ def load_state_table() -> pd.DataFrame:
 
 
 def run_bot_once() -> str:
-    import main as bot_main
-
     buffer = io.StringIO()
     with redirect_stdout(buffer):
         bot_main.main()
@@ -121,6 +126,16 @@ with tab_settings:
             value=(selected_product or {}).get("selector", ""),
             help="例: span[data-pricetopay-label]",
         )
+        wait_selector = st.text_input(
+            "待機セレクタ（CSS）（任意）",
+            value=(selected_product or {}).get("wait_selector", "") or "",
+            help="ページ読み込み完了を判定するセレクタ。省略時は価格セレクタで待機します。",
+        )
+        attribute = st.text_input(
+            "属性名（任意）",
+            value=(selected_product or {}).get("attribute", "") or "",
+            help="価格をテキストではなく属性値から取得する場合に指定します。例: data-price",
+        )
         target_price = st.number_input(
             "目標価格（任意）",
             min_value=0,
@@ -141,8 +156,8 @@ with tab_settings:
                 "name": name.strip(),
                 "url": url.strip(),
                 "selector": selector.strip(),
-                "wait_selector": selector.strip(),
-                "attribute": None,
+                "wait_selector": wait_selector.strip() or None,
+                "attribute": attribute.strip() or None,
                 "target_price": int(target_price) if target_price > 0 else None,
             }
 
@@ -156,12 +171,12 @@ with tab_settings:
                 products.append(new_item)
 
             save_products(products)
-            st.success("保存しました")
+            st.toast("保存しました", icon="✅")
             st.rerun()
 
     if selected_name and selected_product:
         if st.button("削除", type="secondary"):
             products = [p for p in products if p.get("name") != selected_name]
             save_products(products)
-            st.success("削除しました")
+            st.toast("削除しました", icon="🗑️")
             st.rerun()

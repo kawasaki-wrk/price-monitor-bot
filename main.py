@@ -5,16 +5,17 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
-from typing import Any
+from typing import Any, Iterator
 
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    StaleElementReferenceException,
+    TimeoutException,
+)
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -106,6 +107,7 @@ def build_driver() -> webdriver.Chrome:
             },
         )
     except Exception:
+        # CDP コマンドは一部の環境・ブラウザバージョンで未対応のため、失敗しても続行する
         pass
 
     return driver
@@ -214,6 +216,8 @@ def notify(message: str) -> None:
 
 def create_message(rule: ProductRule, old_price: float | None, current_price: float) -> str:
     if old_price is None:
+        if rule.target_price is None:
+            raise ValueError(f"target_price が未設定の状態で通知メッセージを生成できません: {rule.name}")
         return (
             f"🎯 初回計測で目標価格到達: {rule.name}\n"
             f"現在価格: {current_price:.0f}円 (目標: {rule.target_price:.0f}円 以下)\n"
@@ -228,6 +232,8 @@ def create_message(rule: ProductRule, old_price: float | None, current_price: fl
             f"{rule.url}"
         )
 
+    if rule.target_price is None:
+        raise ValueError(f"target_price が未設定の状態で通知メッセージを生成できません: {rule.name}")
     return (
         f"🎯 目標価格到達: {rule.name}\n"
         f"現在価格: {current_price:.0f}円 (目標: {rule.target_price:.0f}円 以下)\n"
